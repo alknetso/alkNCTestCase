@@ -1,0 +1,73 @@
+---
+- hosts: os_CentOS
+  gather_facts: False
+  become: yes
+  tasks:
+
+    - name: Set the own hostname
+      hostname:
+        name: "{{ inventory_hostname }}"
+    - name: Disable root login over SSH
+      lineinfile: dest=/etc/ssh/sshd_config regexp="^PermitRootLogin" line="PermitRootLogin no" state=present
+      notify:
+        - restart sshd
+    - name: Disable password login over SSH
+      lineinfile: dest=/etc/ssh/sshd_config regexp="^PasswordAuthentication" line="PasswordAuthentication no" state=present
+      notify:
+        - restart sshd
+
+#https://linuxize.com/post/how-to-disable-selinux-on-centos-8/
+# sestatus #check SELinux status
+    - name: Disable SELinux
+      ansible.posix.selinux:
+        state: disabled
+      notify:
+        - reboot self
+# [WARNING]: SELinux state change will take effect next reboot
+
+
+#[root@c8 ~]# systemctl status firewalld
+#Unit firewalld.service could not be found.
+#Nevermind, let's install it and than disable
+    - name: Ensure Firewalld is installed
+      dnf:
+        name: firewalld
+        state: latest
+    - name: Disable Firewalld
+      service:
+        name: firewalld
+        state: stopped
+        enabled: no
+
+#  - import_tasks: more_centos_postinstall-tasks.yml
+
+
+#2DO: Set up swap space
+#2DO: Format and set up automount for any secondary storage, like /srv
+#2DO: Set up timezone comfortable for users
+#2DO: Set up default locale comfortable for users
+#2DO: Update+upgrade distro
+
+#2DO: create personalized SysAdmin users, set them to be passwordless,
+#  have a nice GECOS and appropiate authorized_keys.
+# Then disable default user "ubuntu" and remove authorized_keys for root
+
+#http://minimum-viable-automation.com/ansible/use-ansible-create-user-accounts-setup-ssh-keys/
+#  - name: "Create user accounts and add users to groups"
+#    user:
+#      name: "{{ item }}"
+#    with_items: "{{ SysAdmins }}"
+#### AttributeError: module 'platform' has no attribute 'dist'
+# Will not create users via "command:" module, since it's not a idempotent action
+
+
+  handlers:
+    - name: restart sshd
+      service:
+        name: sshd
+        state: restarted
+        enabled: yes
+    - name: reboot self
+      reboot:
+
+

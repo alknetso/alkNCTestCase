@@ -1,0 +1,105 @@
+
+#This file contains the instructions to set up Terraform on a local workstation.
+#It looks like a shell script, but it should not be executed as one.
+#Instead, this commands shall be executed manually
+#  in a Linux terminal of the operator's workstation,
+#  at most with aid of a copy-paste,
+#  verifying the output and applying common sense in every moment.
+
+#This file's porpouse is to serve as a reference for the operator,
+#  in order to help him to set up the needed environment
+#    smoothly and in a reproduceable fashion.
+#It also allows to modify the environment setup easily
+#  in case the requirements or procedures changes slightly.
+
+#Ideally, this file shall be modified as the project develops,
+#  reflecting all the changes
+#  and stored in a verison control system, such as GIT.
+
+#Beside serving as project's live documentation,
+#  the ultimate goal of this file is to allow to re-create the project from 0
+#  at any time.
+
+
+####
+# Set up Terraform infrastructure on SysAdmin's workstation
+####
+
+#CD to the project base directory before you continue. Let's say
+mkdir -p ~/NCTestCase
+cd ~/NCTestCase
+
+#Will use this directory to store executable files and tools
+#  used pro the project's infrastructure management.
+mkdir -p exec
+cd exec
+
+#Download the Terraform binary distribution
+#Check https://www.terraform.io/downloads.html first
+#  Latest version as of 2022-04-03: v1.1.7
+
+TF_VER="1.1.7"
+TF_PLATFORM="linux"
+TF_ARCH="amd64"
+
+TF_FN_BINARY="terraform_${TF_VER}_${TF_PLATFORM}_${TF_ARCH}.zip"
+TF_FN_SHA256="terraform_${TF_VER}_SHA256SUMS"
+TF_URL_BASE="https://releases.hashicorp.com/terraform/${TF_VER}"
+TF_URL_BINARY="${TF_URL_BASE}/${TF_FN_BINARY}"
+TF_URL_SHA256="${TF_URL_BASE}/${TF_FN_SHA256}"
+
+echo "
+${TF_URL_BINARY}
+${TF_URL_SHA256}
+"
+#Should read:
+#https://releases.hashicorp.com/terraform/1.1.7/terraform_1.1.7_linux_amd64.zip
+#https://releases.hashicorp.com/terraform/1.1.7/terraform_1.1.7_SHA256SUMS
+
+wget "${TF_URL_BINARY}"
+wget "${TF_URL_SHA256}"
+
+#2DO: Don't just trust downloaded SHA256 hashes.
+#Add verification of the signature for the CHECKSUMS file,
+#  it seems to be available as .sig files in Terraform donwnload section.
+
+#Verify we got the expected content in the tarball.
+MYCHECKSUM=$(cat "${TF_FN_SHA256}" | grep "${TF_FN_BINARY}")
+echo ${MYCHECKSUM}
+#Should read:
+#e4add092a54ff6febd3325d1e0c109c9e590dc6c38f8bb7f9632e4e6bcca99d4 terraform_1.1.7_linux_amd64.zip
+
+echo ${MYCHECKSUM} > "${TF_FN_BINARY}".sha256
+LANG=C sha256sum -c "${TF_FN_BINARY}".sha256
+#Should read:
+#terraform_1.1.7_linux_amd64.zip: OK
+
+
+unzip "${TF_FN_BINARY}"
+sha256sum terraform
+
+#Should read:
+#ba86f524c64a97df436d541e67480607d0330ea27b23c3208316260189210151  terraform
+
+
+#2DO: download plugin for provider "aws" manually and put it in place
+#  instead of setting it up on-the-fly in the first "terraform init" run.
+
+
+#Copy the next section to a safe place,
+#  together with the definition of environment variables for authentication
+#  and other secrets.
+#It chall be used to set up the shell alias to run Terraform from userspace.
+cat > /tmp/terraform.sha256 << EOF
+ba86f524c64a97df436d541e67480607d0330ea27b23c3208316260189210151  terraform
+EOF
+LANG=C sha256sum -c /tmp/terraform.sha256 \
+  && alias terraform="$(pwd)/terraform" \
+  && rm /tmp/terraform.sha256 \
+  && terraform -version
+#Should read:
+# terraform: OK
+# Terraform v1.1.7
+# on linux_amd64
+
+

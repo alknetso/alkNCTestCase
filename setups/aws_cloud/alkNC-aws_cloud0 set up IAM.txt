@@ -1,0 +1,62 @@
+
+#This file contains the instructions needed to be
+#  executed in AWS web console,
+#  in order to enable access to it from Terraform orchestration tool.
+
+
+####
+# Set up AWS IAM for management by Terraform
+####
+
+https://console.aws.amazon.com/console/home
+Log in as account's root user
+
+Section IAM
+
+Access management -> User groups -> [Create Group]
+User group name: alkNC-terraform-CloudAdmins
+PolicyName: AdministratorAccess
+[Create Group]
+
+Access management -> Users -> [Add users]
+User name: alkNC-alk-terraform
+Select AWS credential type: Access key - Programmatic access
+[Next: Permissions]
+Group: alkNC-terraform-CloudAdmins
+[Next: Tags]
+[Next: Review]
+(User name: alkNC-alk-terraform)
+(AWS access type: Programmatic access - with an access key)
+(Permissions boundary: Permissions boundary is not set )
+[Create User]
+(copy "User", "Access key ID" and "Secret access key"
+  and safe them in a secret secure place)
+[Close]
+
+
+####
+# Reference: Set up environment to run Terraform
+####
+
+#Run this lines in your terminal each time
+#  before using Terraform in this project.
+
+
+TFVERSION="1.1.7"
+TFBIN=${HOME}/NCTestCase/exec/terraform
+cat > /tmp/terraform.sha256 << EOF
+ba86f524c64a97df436d541e67480607d0330ea27b23c3208316260189210151  ${TFBIN}
+EOF
+LANG=C sha256sum -c /tmp/terraform.sha256 \
+  && alias terraform="${TFBIN}/terraform" \
+  && rm /tmp/terraform.sha256 \
+  && terraform -version
+export HISTCONTROL=ignorespace
+  export AWS_ACCESS_KEY_ID="Access key ID"
+  export AWS_SECRET_ACCESS_KEY="Secret access key"
+  export AWS_DEFAULT_REGION="us-east-1"
+
+
+
+
+

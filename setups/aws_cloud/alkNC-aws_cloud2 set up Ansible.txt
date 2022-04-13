@@ -1,0 +1,141 @@
+
+#This file contains the instructions to set up Ansible on a local workstation.
+#It looks like a shell script, but it should not be executed as one.
+#Instead, this instructions's commands shall be run manually,
+#  in a Linux terminal of the operator's workstation,
+#  verifying the output and applying common sense in every moment.
+This file's porpouse is to serve as a reference for the operator,
+#  in order to help him to set up the needed environment smoothly,
+#  in a reproduceable fashion
+#  and be easy to modify in case the requirements or the procedures
+#    changes slightly.
+
+#Ideally, this file shall be modified as the project develops
+#  and stored in a verison control system, such as GIT.
+
+
+#Use portable version instead?
+#https://github.com/ownport/portable-ansible
+#https://github.com/ownport/portable-ansible/releases
+#https://github.com/ownport/portable-ansible/releases/download/v0.5.0/portable-ansible-v0.5.0-py3.tar.bz2
+#Seems not to work well with the collections.
+#  It can install and list them,
+#  but can't find them if referenced from a playbook.
+
+#Use GIT version instead?
+https://www.reddit.com/r/ansible/comments/2hsoly/run_ansible_portablewith_no_install/
+
+####
+# Set up portable Ansible infrastructure on SysAdmin's workstation
+####
+
+#CD to the project base directory before you continue
+
+mkdir -p exec
+cd exec
+
+#Download the portable Ansible distribution
+#Check https://github.com/ownport/portable-ansible first
+#  Latest version as of 2022-04-07: v0.5.0
+
+PA_VER="v0.5.0"
+PA_PY="py3"
+
+PA_FN_BINARY="portable-ansible-${PA_VER}-${PA_PY}.tar.bz2"
+PA_URL_BASE="https://github.com/ownport/portable-ansible/releases/download/${PA_VER}"
+PA_URL_BINARY="${PA_URL_BASE}/${PA_FN_BINARY}"
+
+wget "${PA_URL_BINARY}"
+sha256sum ${PA_FN_BINARY}
+#Should read:
+# 8b0cecdfad441fb94cfbba1cde19db6e540a13c329519aa12a5108406ee5107d  portable-ansible-v0.5.0-py3.tar.bz2
+
+echo 8b0cecdfad441fb94cfbba1cde19db6e540a13c329519aa12a5108406ee5107d  ${PA_FN_BINARY} > "${PA_FN_BINARY}".sha256
+LANG=C sha256sum -c "${PA_FN_BINARY}".sha256
+#Should read:
+# portable-ansible-v0.5.0-py3.tar.bz2: OK
+
+tar -xjvf ${PA_FN_BINARY}
+
+#No way we can do a checksum on all the executables and scripts, so skip it.
+
+python3 ansible localhost -m ping
+
+for l in config console doc galaxy inventory playbook pull vault; do
+  ln -s ansible ansible-$l
+done
+
+
+ANSIBLE_BASE=$(pwd)/ansible
+echo $ANSIBLE_BASE
+#Should read:
+# /home/alk/NCTestCase/exec/ansible
+
+ANSIBLE_BASE=$(pwd)/ansible
+alias ansible="python3 ${ANSIBLE_BASE}"
+
+for l in config console doc galaxy inventory playbook pull vault; do
+  alias ansible-${l}="python3 ${ANSIBLE_BASE}-${l}"
+done
+
+ansible localhost -m ping
+
+
+####
+# Set up Ansible collections for portable infrastructure
+####
+
+ansible-galaxy collection install ansible.posix
+
+ansible-galaxy collection list
+
+#2DO: install collections manually and specifically, not on-the-fly
+https://docs.ansible.com/ansible/latest/user_guide/collections_using.html#downloading-a-collection-for-offline-use
+
+
+
+####
+# Set up initial Ansible environment specific for the project
+####
+
+#CD to the project base directory before you continue
+
+#Note the RSA key path in ansible_hosts, it should point to the actual key.
+
+
+PROJECT="Alk-Netcracker Test Case"
+MainPrefix="alkNC"
+
+mkdir -p setups/aws_cloud/ansible \
+  && cd setups/aws_cloud/ansible
+
+cat > ansible_hosts << EOF
+
+[backend]
+
+[frontend]
+
+[backend:vars]
+ansible_python_interpreter=/usr/bin/python3
+ansible_user=ubuntu
+ansible_ssh_private_key_file=../.secrets/alkNC-deployer-key_2022-04-04T200847
+#2DO: ansible_ssh_private_key_file should be set in playbook
+
+[frontend:vars]
+ansible_python_interpreter=/usr/libexec/platform-python
+ansible_user=centos
+ansible_ssh_private_key_file=../.secrets/alkNC-deployer-key_2022-04-04T200847
+#2DO: ansible_ssh_private_key_file should be set in playbook
+
+EOF
+
+#ansible all -i ansible_hosts -m ping
+export ANSIBLE_INVENTORY="$(pwd)/ansible_hosts"
+ansible all -m ping
+
+ansible-playbook alkNC-0common.yml
+
+
+
+
+

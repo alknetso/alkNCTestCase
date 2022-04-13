@@ -1,0 +1,70 @@
+---
+- hosts: os_Ubuntu
+  gather_facts: False
+  become: yes
+  tasks:
+
+    - name: Set the own hostname
+      hostname:
+        name: "{{ inventory_hostname }}"
+#### AttributeError: module 'platform' has no attribute 'dist'
+#      command: hostnamectl set-hostname {{ inventory_hostname }}
+
+    - name: Fix SSH server keys comments
+#      command: sed -ri 's/(.* root@).*$/\1{{ inventory_hostname }}/' "{{ item }}"
+      replace:
+        dest: "{{ item }}"
+        regexp: '(.* root@).*$'
+        replace: '\1{{ inventory_hostname }}'
+      loop:
+        - /etc/ssh/ssh_host_dsa_key.pub
+        - /etc/ssh/ssh_host_ed25519_key.pub
+        - /etc/ssh/ssh_host_rsa_key.pub
+        - /etc/ssh/ssh_host_ecdsa_key.pub
+      notify:
+        - restart ssh
+#    - name: Restart SSH service
+##      command: /etc/init.d/ssh restart
+#      service:
+#        name: ssh
+#        state: restarted
+#        enabled: yes
+#Use handler instead
+
+
+    - name: Disable root login over SSH
+      lineinfile: dest=/etc/ssh/sshd_config regexp="^PermitRootLogin" line="PermitRootLogin no" state=present
+      notify:
+        - restart ssh
+    - name: Disable password login over SSH
+      lineinfile: dest=/etc/ssh/sshd_config regexp="^PasswordAuthentication" line="PasswordAuthentication no" state=present
+      notify:
+        - restart ssh
+
+    - name: Update APT cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+#  - import_tasks: more_ubuntu_postinstall-tasks.yml
+
+#2DO: Set up swap space
+#2DO: Format and set up automount for any secondary storage, like /srv
+#2DO: Set up timezone comfortable for users
+#2DO: Set up default locale comfortable for users
+
+#2DO: Update+upgrade distro
+
+
+#2DO: create personalized SysAdmin users, set them to be passwordless,
+#  have a nice GECOS and appropiate authorized_keys.
+# Then disable default user "ubuntu" and remove authorized_keys for root
+
+
+  handlers:
+    - name: restart ssh
+      service:
+        name: ssh
+        state: restarted
+        enabled: yes
+

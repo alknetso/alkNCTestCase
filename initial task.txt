@@ -1,0 +1,22 @@
+1.  by terraform deploy 2 vm.
+    - 1st based centos 8, hostname: c8.local
+    - 2nd based ubuntu 21.04, hostname: u21.local
+
+2.  as result of terraform job
+  need to create inventory for ansible
+- c8.local has to be in group “frontend”
+- u21.local has to be in group “backend”
+
+3.  Create an ansible playbook для c8.local и u21.local
+- for ОS centos playbook has to apply the following changes
+* selinux: disable
+* firewalld: disable
+
+- for group frontend playbook has to configure and install nginx
+-configuration of nginx:
+  add proxy from port 80 to port 19999 in group backend
+
+- for group backend playbook has to install from official repos the app “netdata” and run on port 19999
+
+
+

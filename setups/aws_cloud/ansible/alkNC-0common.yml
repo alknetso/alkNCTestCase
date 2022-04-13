@@ -1,0 +1,47 @@
+---
+  - name: talk to all hosts just so we can learn about them
+    hosts: all
+#    vars:
+#      ansible_ssh_private_key_file: ../.secrets/alkNC-deployer-key_2022-04-04T200847
+    tasks:
+      - name: Classify hosts depending on their OS distribution
+        group_by:
+          key: os_{{ ansible_facts['distribution'] }}
+
+#  - hosts: os_CentOS
+#    gather_facts: False
+#    become: yes
+#    tasks:
+##    - name: test connection to CentOS
+##      ping:
+#    - import_tasks: alkNC-aws_centos_postinstall-tasks.yml
+#    handlers:
+#    - name: restart sshd
+#      service:
+#        name: sshd
+#        state: restarted
+#        enabled: yes
+#    - name: reboot self
+#      reboot:
+
+#  - hosts: os_Ubuntu
+#    gather_facts: False
+#    become: yes
+#    tasks:
+##    - name: test connection to Ubuntu
+##      ping:
+#    - import_tasks: alkNC-aws_ubuntu_postinstall-tasks.yml
+#    handlers:
+#    - name: restart ssh
+#      service:
+#        name: ssh
+#        state: restarted
+#        enabled: yes
+
+  - import_playbook: alkNC-aws_centos_postinstall.yml
+  - import_playbook: alkNC-aws_ubuntu_postinstall.yml
+
+#Should disable gathering facts for the second time?
+  - import_playbook: alkNC-backend.yml
+  - import_playbook: alkNC-frontend.yml
+

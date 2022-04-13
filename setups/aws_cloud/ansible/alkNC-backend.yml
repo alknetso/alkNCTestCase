@@ -1,0 +1,71 @@
+---
+- hosts: backend
+  remote_user: ubuntu
+  become: yes
+  vars:
+    ssh_private_key_file: ../.secrets/alkNC-deployer-key_2022-04-04T200847
+
+  tasks:
+
+#    - name: test connection
+#      ping:
+
+#Lighttpd is the choice.
+#Apache is sort of heavy.
+#Nginx is reserved to be used as a reverse proxy in this frontend+backend stack.
+    - name: Ensure LigHTTPD is installed
+      apt:
+        name: lighttpd
+        state: latest
+    - name: Set document-root for LigHTTPD
+      lineinfile: dest=/etc/lighttpd/lighttpd.conf regexp="^server.document-root" line='server.document-root = "/srv/www"' state=present
+      notify:
+        - restart lighttpd
+    - name: Disable dir-listing for LigHTTPD
+      lineinfile: dest=/etc/lighttpd/lighttpd.conf regexp="^server.dir-listing" line='server.dir-listing = "disable"' state=present
+      notify:
+        - restart lighttpd
+
+    - name: Create document-root for LigHTTPD
+      file:
+        path: /srv/www
+        state: directory
+        owner: www-data
+        group: www-data
+        mode: 0770
+#2DO: chmod g+s /srv/www
+#2DO: setfacl -d -m u::rwx,g::rwx,o::--- /srv/www
+#2DO: lighttpd-enable-mod accesslog
+#2DO: lighttpd-enable-mod ssl
+#2DO: Add SSL keys and configuration, at least self-signed
+
+
+    - name: Ensure Netdata is installed
+      apt:
+        name: netdata
+        state: latest
+    - name: Netdata should listen to network
+      lineinfile: dest=/etc/netdata/netdata.conf regexp="^\s*bind socket to IP" line='bind socket to IP = 0.0.0.0' state=present
+      notify:
+        - restart netdata
+#2DO: Handle in a nicer way the leading spaces in Netdata's config file.
+#2DO: Honor Netdata's warning about exposing it to potentially hostile networks.
+#  At least HTTPS and Basic authentication, maybe?
+#  AWS's security group rules are protecting us,
+#    but should have another layer or two.
+#2DO: Move Netdata's data files to some nice place under /srv.
+
+
+  handlers:
+    - name: restart lighttpd
+      service:
+        name: lighttpd
+        state: restarted
+        enabled: yes
+    - name: restart netdata
+      service:
+        name: netdata
+        state: restarted
+        enabled: yes
+
+

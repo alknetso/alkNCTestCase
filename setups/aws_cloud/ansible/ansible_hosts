@@ -1,0 +1,18 @@
+
+#[backend]
+#u21  ansible_host=ec2-54-243-1-188.compute-1.amazonaws.com
+#
+#[frontend]
+#c8   ansible_host=ec2-54-173-106-110.compute-1.amazonaws.com
+
+[backend:vars]
+ansible_user=ubuntu
+ansible_ssh_private_key_file=../.secrets/alkNC-deployer-key_2022-04-04T200847
+ansible_python_interpreter=/usr/bin/python3
+
+[frontend:vars]
+ansible_user=centos
+ansible_ssh_private_key_file=../.secrets/alkNC-deployer-key_2022-04-04T200847
+ansible_python_interpreter=/usr/libexec/platform-python
+
+
